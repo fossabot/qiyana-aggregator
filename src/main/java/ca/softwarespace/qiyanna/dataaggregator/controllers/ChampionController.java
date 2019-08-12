@@ -1,6 +1,7 @@
 package ca.softwarespace.qiyanna.dataaggregator.controllers;
 
-import ca.softwarespace.qiyanna.dataaggregator.models.AggregatedChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.Champions.AggregatedChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.Champions.ChampionDto;
 import ca.softwarespace.qiyanna.dataaggregator.services.ChampionService;
 import io.swagger.annotations.ApiParam;
 import java.util.List;
@@ -13,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/champion")
+@RequestMapping("/champions")
 public class ChampionController {
 
   private final ChampionService championService;
@@ -29,5 +30,10 @@ public class ChampionController {
     return championService.aggregateChampionStatsBySummoner(summonerName, championName, regionName).get();
   }
 
+  @GetMapping("/")
+  public List<ChampionDto> getChampions() {
+    championService.aggregateChampions();
+    return null;
+  }
 
 }

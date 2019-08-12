@@ -1,7 +1,7 @@
 package ca.softwarespace.qiyanna.dataaggregator.services;
 
-import ca.softwarespace.qiyanna.dataaggregator.models.AggregatedChampionDto;
-import ca.softwarespace.qiyanna.dataaggregator.models.ChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.Champions.AggregatedChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.Champions.ChampionDto;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.BeforeClass;
