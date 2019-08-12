@@ -1,7 +1,5 @@
 package ca.softwarespace.qiyanna.dataaggregator.models;
 
-import com.merakianalytics.orianna.types.common.Division;
-import com.merakianalytics.orianna.types.common.Tier;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,15 +9,20 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Data
 @Builder
-public class SummonerDto {
+public class AggregatedChampionDto {
 
+  private String accountId;
   private String name;
-  private int level;
-  private Tier tier;
-  private Division division;
-  private int leaguePoints;
+
+  private int played;
   private int wins;
   private int losses;
   private double winrate;
 
+  private double averageKills;
+  private double averageDeaths;
+  private double averageAssists;
+  private double averageCs;
+  private double averageGold;
+  private double averageCsPerMin;
 }

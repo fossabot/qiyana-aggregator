@@ -9,7 +9,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Data
 @Builder
-public class MatchDto {
+public class ChampionDto {
 
-  private long id;
+  private String name;
+  private int cs;
+  private int kills;
+  private int deaths;
+  private int assists;
+  private boolean isWinner;
+  private int gold;
+  private double csPerMin;
+
 }
