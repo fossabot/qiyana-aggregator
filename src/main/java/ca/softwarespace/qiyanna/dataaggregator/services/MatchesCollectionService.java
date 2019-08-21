@@ -9,14 +9,20 @@ import com.merakianalytics.orianna.types.core.match.Match;
 import com.merakianalytics.orianna.types.core.match.MatchHistory;
 import com.merakianalytics.orianna.types.core.match.Participant;
 import com.merakianalytics.orianna.types.core.summoner.Summoner;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.joda.time.DateTime;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
 
@@ -27,6 +33,14 @@ import org.springframework.stereotype.Service;
 @Log4j2
 @RequiredArgsConstructor
 public class MatchesCollectionService {
+
+  private Map<String, Long> aggregatedSummonerMap;
+  private int aggregationLifeTime;
+
+  public MatchesCollectionService(@Value("${aggregationCacheLifeTime}")int aggregationLifeTime) {
+    this.aggregationLifeTime = aggregationLifeTime;
+    this.aggregatedSummonerMap = new HashMap<>();
+  }
 
   public MatchHistory filterMatchHistory(Summoner summoner) {
     ArrayList<Queue> queues = new ArrayList<>();
@@ -105,39 +119,46 @@ public class MatchesCollectionService {
   }
 
   private void aggregate(Summoner summoner, Region region) {
-    HashSet<String> unpulledSummonerIds = new HashSet<>();
-    unpulledSummonerIds.add(summoner.getId());
+    String mapKey = summoner.getName() + region.getTag();
+    DateTime recordAgeLimit = new DateTime(DateTime.now()).plusMinutes(25);
+    if (aggregatedSummonerMap.containsKey(mapKey) && recordAgeLimit.isAfter(aggregatedSummonerMap.get(mapKey))) {
+      aggregatedSummonerMap.remove(mapKey);
+    }
+    if (!aggregatedSummonerMap.containsKey(mapKey)) {
+      HashSet<String> unpulledSummonerIds = new HashSet<>();
+      unpulledSummonerIds.add(summoner.getId());
 
-    HashSet<String> pulledSummonerIds = new HashSet<>();
-    HashSet<Long> unpulledMatchIds = new HashSet<>();
-    HashSet<Long> pulledMatchIds = new HashSet<>();
+      HashSet<String> pulledSummonerIds = new HashSet<>();
+      HashSet<Long> unpulledMatchIds = new HashSet<>();
+      HashSet<Long> pulledMatchIds = new HashSet<>();
 
-    while (!unpulledSummonerIds.isEmpty()) {
-      // Get a new summoner from our list of unpulled summoners and pull their match history
-      final String newSummonerId = unpulledSummonerIds.iterator().next();
-      final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
-      final MatchHistory matches = filterMatchHistory(newSummoner);
-      for (final Match match : matches) {
-        if (!pulledMatchIds.contains(match.getId())) {
-          unpulledMatchIds.add(match.getId());
-        }
-      }
-      unpulledSummonerIds.remove(newSummonerId);
-      pulledSummonerIds.add(newSummonerId);
-
-      while (!unpulledMatchIds.isEmpty()) {
-        // Get a random match from our list of matches
-        final long newMatchId = unpulledMatchIds.iterator().next();
-        final Match newMatch = Match.withId(newMatchId).withRegion(region).get();
-        for (final Participant p : newMatch.getParticipants()) {
-          if (!pulledSummonerIds.contains(p.getSummoner().getId())) {
-            unpulledSummonerIds.add(p.getSummoner().getId());
+      while (!unpulledSummonerIds.isEmpty()) {
+        // Get a new summoner from our list of unpulled summoners and pull their match history
+        final String newSummonerId = unpulledSummonerIds.iterator().next();
+        final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
+        final MatchHistory matches = filterMatchHistory(newSummoner);
+        for (final Match match : matches) {
+          if (!pulledMatchIds.contains(match.getId())) {
+            unpulledMatchIds.add(match.getId());
           }
         }
-        // The above lines will trigger the match to load its data by iterating over all the participants.
-        // If you have a database in your datapipeline, the match will automatically be stored in it.
-        unpulledMatchIds.remove(newMatchId);
-        pulledMatchIds.add(newMatchId);
+        unpulledSummonerIds.remove(newSummonerId);
+        pulledSummonerIds.add(newSummonerId);
+
+        while (!unpulledMatchIds.isEmpty()) {
+          // Get a random match from our list of matches
+          final long newMatchId = unpulledMatchIds.iterator().next();
+          final Match newMatch = Match.withId(newMatchId).withRegion(region).get();
+          for (final Participant p : newMatch.getParticipants()) {
+            if (!pulledSummonerIds.contains(p.getSummoner().getId())) {
+              unpulledSummonerIds.add(p.getSummoner().getId());
+            }
+          }
+          // The above lines will trigger the match to load its data by iterating over all the participants.
+          // If you have a database in your datapipeline, the match will automatically be stored in it.
+          unpulledMatchIds.remove(newMatchId);
+          pulledMatchIds.add(newMatchId);
+        }
       }
     }
   }
