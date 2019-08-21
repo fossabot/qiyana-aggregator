@@ -31,14 +31,14 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Log4j2
-@RequiredArgsConstructor
 public class MatchesCollectionService {
 
   private Map<String, Long> aggregatedSummonerMap;
+
+  @Value("${aggregationCacheLifeTime}")
   private int aggregationLifeTime;
 
-  public MatchesCollectionService(@Value("${aggregationCacheLifeTime}")int aggregationLifeTime) {
-    this.aggregationLifeTime = aggregationLifeTime;
+  public MatchesCollectionService() {
     this.aggregatedSummonerMap = new HashMap<>();
   }
 
@@ -95,10 +95,9 @@ public class MatchesCollectionService {
   }
 
   @Async
-  public void oriannaTest(String summonerName, String regionName) {
-    Summoner summoner = Orianna.summonerNamed(summonerName).withRegion(Region.valueOf(regionName))
+  public void oriannaTest(String summonerName, Region region) {
+    Summoner summoner = Orianna.summonerNamed(summonerName).withRegion(region)
         .get();
-    Region region = summoner.getRegion();
     aggregate(summoner, region);
   }
 

@@ -8,12 +8,15 @@ import com.merakianalytics.orianna.types.common.Region;
 import com.merakianalytics.orianna.types.core.summoner.Summoner;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
 @Log4j2
 @RequiredArgsConstructor
 public class SummonerService {
+
+  @Autowired private MatchesCollectionService collectionService;
 
   public SummonerDto getSummonerByName(String name, String regionName) {
     Region region = RegionUtil.getRegionByTag(regionName);
@@ -34,5 +37,11 @@ public class SummonerService {
         .losses(losses)
         .winrate(winrate)
         .build();
+  }
+
+  public String aggregate(String name, String regionName){
+    Region region = RegionUtil.getRegionByTag(regionName);
+    collectionService.oriannaTest(name, region);
+    return "Aggregating...";
   }
 }

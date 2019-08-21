@@ -18,12 +18,12 @@ public class SummonerController {
   private final SummonerService summonerService;
 
   @GetMapping("/{name}")
-  public SummonerDto getSummonerByName(
+  public String getSummonerByName(
       @ApiParam(example = "Marcarrian")
       @PathVariable String name,
       @ApiParam(example = "EUW")
       @RequestParam() String regionName) {
-    return summonerService.getSummonerByName(name, regionName);
+    return summonerService.aggregate(name, regionName);
   }
 
 }
