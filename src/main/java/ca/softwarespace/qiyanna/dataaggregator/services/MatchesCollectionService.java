@@ -9,6 +9,7 @@ import com.merakianalytics.orianna.types.core.match.Match;
 import com.merakianalytics.orianna.types.core.match.MatchHistory;
 import com.merakianalytics.orianna.types.core.match.Participant;
 import com.merakianalytics.orianna.types.core.summoner.Summoner;
+import java.sql.SQLOutput;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -83,7 +84,8 @@ public class MatchesCollectionService {
     queues.add(Queue.TB_BLIND_SUMMONERS_RIFT_5x5);
     queues.add(Queue.CUSTOM);
     queues.add(Queue.HEXAKILL);
-    return Orianna.matchHistoryForSummoner(summoner).withSeasons(Season.getLatest())
+    return Orianna.matchHistoryForSummoner(summoner)
+        .withSeasons(Season.getLatest())
         .withQueues(queues).get();
   }
 
@@ -119,11 +121,12 @@ public class MatchesCollectionService {
 
   private void aggregate(Summoner summoner, Region region) {
     String mapKey = summoner.getName() + region.getTag();
-    DateTime recordAgeLimit = new DateTime(DateTime.now()).plusMinutes(25);
+    DateTime recordAgeLimit = new DateTime(DateTime.now()).minusMinutes(aggregationLifeTime);
     if (aggregatedSummonerMap.containsKey(mapKey) && recordAgeLimit.isAfter(aggregatedSummonerMap.get(mapKey))) {
       aggregatedSummonerMap.remove(mapKey);
     }
     if (!aggregatedSummonerMap.containsKey(mapKey)) {
+      aggregatedSummonerMap.put(mapKey, System.currentTimeMillis());
       HashSet<String> unpulledSummonerIds = new HashSet<>();
       unpulledSummonerIds.add(summoner.getId());
 
