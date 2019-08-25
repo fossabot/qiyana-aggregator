@@ -122,9 +122,7 @@ public class MatchesCollectionService {
   private void aggregate(Summoner summoner, Region region) {
     String mapKey = summoner.getName() + region.getTag();
     DateTime recordAgeLimit = new DateTime(DateTime.now()).minusMinutes(aggregationLifeTime);
-    if (aggregatedSummonerMap.containsKey(mapKey) && recordAgeLimit.isAfter(aggregatedSummonerMap.get(mapKey))) {
-      aggregatedSummonerMap.remove(mapKey);
-    }
+    cleanupOldSummonerRecords(mapKey, recordAgeLimit);
     if (!aggregatedSummonerMap.containsKey(mapKey)) {
       aggregatedSummonerMap.put(mapKey, System.currentTimeMillis());
       HashSet<String> unpulledSummonerIds = new HashSet<>();
@@ -162,6 +160,12 @@ public class MatchesCollectionService {
           pulledMatchIds.add(newMatchId);
         }
       }
+    }
+  }
+
+  private void cleanupOldSummonerRecords(String mapKey, DateTime recordAgeLimit) {
+    if (aggregatedSummonerMap.containsKey(mapKey) && recordAgeLimit.isAfter(aggregatedSummonerMap.get(mapKey))) {
+      aggregatedSummonerMap.remove(mapKey);
     }
   }
 }
