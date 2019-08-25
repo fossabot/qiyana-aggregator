@@ -124,7 +124,6 @@ public class MatchesCollectionService {
     DateTime recordAgeLimit = new DateTime(DateTime.now()).minusMinutes(aggregationLifeTime);
     cleanupOldSummonerRecords(mapKey, recordAgeLimit);
     if (!aggregatedSummonerMap.containsKey(mapKey)) {
-      aggregatedSummonerMap.put(mapKey, System.currentTimeMillis());
       HashSet<String> unpulledSummonerIds = new HashSet<>();
       unpulledSummonerIds.add(summoner.getId());
 
@@ -133,6 +132,7 @@ public class MatchesCollectionService {
       HashSet<Long> pulledMatchIds = new HashSet<>();
 
       while (!unpulledSummonerIds.isEmpty()) {
+        aggregatedSummonerMap.put(mapKey, System.currentTimeMillis());
         // Get a new summoner from our list of unpulled summoners and pull their match history
         final String newSummonerId = unpulledSummonerIds.iterator().next();
         final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
@@ -144,7 +144,6 @@ public class MatchesCollectionService {
         }
         unpulledSummonerIds.remove(newSummonerId);
         pulledSummonerIds.add(newSummonerId);
-
         while (!unpulledMatchIds.isEmpty()) {
           // Get a random match from our list of matches
           final long newMatchId = unpulledMatchIds.iterator().next();
@@ -159,6 +158,8 @@ public class MatchesCollectionService {
           unpulledMatchIds.remove(newMatchId);
           pulledMatchIds.add(newMatchId);
         }
+        mapKey = newSummoner.getName() + newSummoner.getRegion();
+        aggregatedSummonerMap.put(mapKey, System.currentTimeMillis());
       }
     }
   }
