@@ -1,8 +1,7 @@
 package ca.softwarespace.qiyanna.dataaggregator.controllers;
 
-import ca.softwarespace.qiyanna.dataaggregator.models.SummonerDto;
+import ca.softwarespace.qiyanna.dataaggregator.services.MatchesCollectionService;
 import ca.softwarespace.qiyanna.dataaggregator.services.SummonerService;
-import io.swagger.annotations.ApiParam;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -16,14 +15,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class SummonerController {
 
   private final SummonerService summonerService;
+  private final MatchesCollectionService matchesCollectionService;
 
-  @GetMapping("/{name}")
-  public SummonerDto getSummonerByName(
-      @ApiParam(example = "Marcarrian")
-      @PathVariable String name,
-      @ApiParam(example = "EUW")
-      @RequestParam() String regionName) {
-    return summonerService.getSummonerByName(name, regionName);
+//  @GetMapping("/{name}")
+//  public SummonerDto getSummonerByName(
+//      @ApiParam(example = "Marcarrian")
+//      @PathVariable String name,
+//      @ApiParam(example = "EUW")
+//      @RequestParam() String regionName) {
+//    return summonerService.getSummonerByName(name, regionName);
+//  }
+
+  @GetMapping("/{sName}")
+  public String testAggregateV2(@PathVariable String sName, @RequestParam String regionName) {
+    matchesCollectionService.prepareAggregationV2(sName, regionName, null);
+    return "Welcome to V2";
   }
 
 }

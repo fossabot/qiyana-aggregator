@@ -36,6 +36,7 @@ public class ChampionService {
 
   public List<AggregatedChampionDto> aggregateChampionStatsBySummoner(String summonerName, String championName, String regionName) {
     Region region = RegionUtil.getRegionByTag(regionName);
+    //TODO: add support for region here
     Summoner summoner = Orianna.summonerNamed(summonerName)
         .withRegion(region)
         .get();

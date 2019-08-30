@@ -166,6 +166,19 @@
       <version>42.2.5</version>
     </dependency>
 
+
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-jdbc</artifactId>
+      <version>5.1.9.RELEASE</version>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>16.0.2</version>
+      <scope>compile</scope>
+    </dependency>
+
   </dependencies>
 
   <dependencyManagement>
@@ -245,8 +258,7 @@
             </database>
             <target>
               <packageName>ca.softwarespace.qiyanna.dataaggregator.models.generated</packageName>
-              <directory>target/generated-sources/qiyanna
-              </directory>
+              <directory>src/main/java</directory>
             </target>
           </generator>
         </configuration>
