@@ -1,3 +1,7 @@
+DROP TABLE IF EXISTS Game_Mode CASCADE;
+DROP TABLE IF EXISTS Role CASCADE;
+DROP TABLE IF EXISTS Map CASCADE;
+
 CREATE TABLE Game_Mode
 (
   gameModeId  serial,
@@ -151,7 +155,7 @@ VALUES ('Summoner''s Rift', 'Original Summer variant'),
        ('Crash Site', 'Odyssey: Extraction map'),
        ('Nexus Blitz', 'Nexus Blitz map');
 
-INSERT INTO rank(shortName)
+INSERT INTO Tier(shortName)
 VALUES ('IRON'),
        ('BRONZE'),
        ('SILVER'),

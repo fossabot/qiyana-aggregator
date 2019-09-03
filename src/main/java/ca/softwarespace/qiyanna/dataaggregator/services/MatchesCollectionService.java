@@ -1,10 +1,13 @@
 package ca.softwarespace.qiyanna.dataaggregator.services;
 
 import ca.softwarespace.qiyanna.dataaggregator.models.MatchDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.LeagueEntry;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.LeagueEntryRecord;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.SummonerRecord;
 import ca.softwarespace.qiyanna.dataaggregator.util.Constants;
 import ca.softwarespace.qiyanna.dataaggregator.util.RegionUtil;
 import com.merakianalytics.orianna.Orianna;
+import com.merakianalytics.orianna.types.common.Queue;
 import com.merakianalytics.orianna.types.common.Region;
 import com.merakianalytics.orianna.types.common.Season;
 import com.merakianalytics.orianna.types.core.match.Match;
@@ -108,7 +111,6 @@ public class MatchesCollectionService {
     }
   }
 
-//TODO: make this async
   @Async
   public void prepareAggregationV2(String summonerName, String regionName, Integer startSeasonId) {
     Season startSeason;
@@ -123,7 +125,7 @@ public class MatchesCollectionService {
     aggregateV2(summoner, region, startSeason);
   }
 
-//  TODO: save the summoner is the SQL database,
+  //  TODO: save the summoner is the SQL database,
   private void aggregateV2(Summoner summoner, Region region, Season season) {
     HashSet<String> unpulledSummonerIds = new HashSet<>();
     unpulledSummonerIds.add(summoner.getId());
@@ -140,17 +142,19 @@ public class MatchesCollectionService {
       final SummonerRecord record = dsl.selectFrom(
           ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
           .where(
-              ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER.ACCOUNTID
+              ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER.SUMMONERID
                   .eq(newSummonerId))
           .fetchAny();
       final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
       final MatchHistory matches;
       if (record != null) {
+        createSummonerRecord(newSummoner);
         matches = filterMatchHistory(newSummoner, season,
-            millsToLocalDateTime(record.getRevisiondate()));
+            millsToDateTime(record.getRevisiondate()));
       } else {
         matches = filterMatchHistory(newSummoner, season, null);
       }
+      createOrupdateLeagueEntry(newSummoner);
 
       for (final Match match : matches) {
         if (!pulledMatchIds.contains(match.getId())) {
@@ -178,6 +182,36 @@ public class MatchesCollectionService {
     //TODO pull other information like rank and all
   }
 
+  private void createOrupdateLeagueEntry(Summoner newSummoner) {
+    LeagueEntryRecord record = dsl.selectFrom(
+        LeagueEntry.LEAGUE_ENTRY)
+        .where(
+            LeagueEntry.LEAGUE_ENTRY.summoner().ACCOUNTID.eq(newSummoner.getAccountId()))
+        .fetchAny();
+
+    if (record == null) {
+      // TODO: finish this
+      record = new LeagueEntryRecord();
+      com.merakianalytics.orianna.types.core.league.LeagueEntry leaguePosition = newSummoner
+          .getLeaguePosition(Queue.TEAM_BUILDER_RANKED_SOLO);
+      record.setFreshblood(leaguePosition.isFreshBlood());
+    }
+  }
+
+  private void createSummonerRecord(Summoner newSummoner) {
+    SummonerRecord newRecord = new SummonerRecord();
+    newRecord.setAccountid(newSummoner.getAccountId());
+    newRecord.setSummonerid(newSummoner.getId());
+    newRecord.setName(newSummoner.getName());
+    newRecord.setPuuid(newSummoner.getPuuid());
+    newRecord.setProfileiconid(newSummoner.getProfileIcon().getId());
+    newRecord.setSummonerlevel((long) newSummoner.getLevel());
+    newRecord.setRevisiondate(newSummoner.getUpdated().getMillis());
+    dsl.insertInto(
+        ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
+        .values(newRecord);
+  }
+
   private MatchHistory filterMatchHistory(Summoner summoner, Season season, DateTime startTime) {
     if (startTime != null) {
       return Orianna.matchHistoryForSummoner(summoner).withSeasons(Season.getLatest())
@@ -188,7 +222,7 @@ public class MatchesCollectionService {
     }
   }
 
-  private static DateTime millsToLocalDateTime(long millis) {
+  private DateTime millsToDateTime(long millis) {
     return new DateTime(millis);
   }
 

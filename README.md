@@ -7,11 +7,11 @@ is the champions.gg API.
 
 ## Development environment  
 ### Needed:
- * A mongodb server running on default port (consider having it running in a docker to make life easier).
+ * Docker. There is a docker compose file with the database setup, just run that in docker.
  * Have an API key from riot, and set it as an environment variable
  
  
  ## Disclaimer  
- Qyianna isn't endorsed by Riot Games and doesn't reflect the views or opinions of Riot Games or anyone officially
+ Qyianna isn't endorsed by Riot Games and does not reflect the views or opinions of Riot Games or anyone officially
  involved in producing or managing League of Legends. League of Legends and Riot Games are trademarks or registered
  trademarks of Riot Games, Inc. League of Legends © Riot Games, Inc.
