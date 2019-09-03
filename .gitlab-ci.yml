@@ -23,7 +23,7 @@ stages:
 
 services:
   - postgres:11.5-alpine
-  -mongo:latest
+  -mongo
 
 variables:
   # This will suppress any download for dependencies and plugins or upload messages which would clutter the console log.
