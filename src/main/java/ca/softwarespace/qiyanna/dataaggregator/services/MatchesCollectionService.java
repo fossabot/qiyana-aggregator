@@ -11,9 +11,6 @@ import com.merakianalytics.orianna.types.core.match.Match;
 import com.merakianalytics.orianna.types.core.match.MatchHistory;
 import com.merakianalytics.orianna.types.core.match.Participant;
 import com.merakianalytics.orianna.types.core.summoner.Summoner;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -111,6 +108,8 @@ public class MatchesCollectionService {
     }
   }
 
+//TODO: make this async
+  @Async
   public void prepareAggregationV2(String summonerName, String regionName, Integer startSeasonId) {
     Season startSeason;
     Region region = RegionUtil.getRegionByTag(regionName);
@@ -124,6 +123,7 @@ public class MatchesCollectionService {
     aggregateV2(summoner, region, startSeason);
   }
 
+//  TODO: save the summoner is the SQL database,
   private void aggregateV2(Summoner summoner, Region region, Season season) {
     HashSet<String> unpulledSummonerIds = new HashSet<>();
     unpulledSummonerIds.add(summoner.getId());
