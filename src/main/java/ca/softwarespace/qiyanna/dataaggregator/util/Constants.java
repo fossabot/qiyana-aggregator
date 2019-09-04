@@ -10,6 +10,7 @@ public class Constants {
 
   public static final String MATCH_LIST_BEGIN_INDEX_PARAMETER = "beginIndex";
   public static final String MATCHES_NODE_IN_MATCH_LIST = "matches";
+  public static final int SOLO_QUEUE_RANKED_ID = 420;
   public static ArrayList<Queue> getQeuesList() {
     ArrayList<Queue> queues = new ArrayList<>();
     queues.add(Queue.OVERCHARGE);

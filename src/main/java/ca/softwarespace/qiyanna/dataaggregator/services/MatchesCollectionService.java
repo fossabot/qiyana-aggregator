@@ -2,8 +2,12 @@ package ca.softwarespace.qiyanna.dataaggregator.services;
 
 import ca.softwarespace.qiyanna.dataaggregator.models.MatchDto;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.LeagueEntry;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Rank;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Tier;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.LeagueEntryRecord;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.RankRecord;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.SummonerRecord;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.TierRecord;
 import ca.softwarespace.qiyanna.dataaggregator.util.Constants;
 import ca.softwarespace.qiyanna.dataaggregator.util.RegionUtil;
 import com.merakianalytics.orianna.Orianna;
@@ -139,22 +143,11 @@ public class MatchesCollectionService {
       // Get a new summoner from our list of unpulled summoners and pull their match history
       final String newSummonerId = unpulledSummonerIds.iterator().next();
 
-      final SummonerRecord record = dsl.selectFrom(
-          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
-          .where(
-              ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER.SUMMONERID
-                  .eq(newSummonerId))
-          .fetchAny();
       final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
       final MatchHistory matches;
-      if (record != null) {
-        createSummonerRecord(newSummoner);
-        matches = filterMatchHistory(newSummoner, season,
-            millsToDateTime(record.getRevisiondate()));
-      } else {
-        matches = filterMatchHistory(newSummoner, season, null);
-      }
-      createOrupdateLeagueEntry(newSummoner);
+      DateTime startUpdateTime = createOrUpdateSummonerRecord(newSummoner);
+      matches = filterMatchHistory(newSummoner, season, startUpdateTime);
+      createOrUpdateLeagueEntry(newSummoner);
 
       for (final Match match : matches) {
         if (!pulledMatchIds.contains(match.getId())) {
@@ -182,34 +175,86 @@ public class MatchesCollectionService {
     //TODO pull other information like rank and all
   }
 
-  private void createOrupdateLeagueEntry(Summoner newSummoner) {
+  private void createOrUpdateLeagueEntry(Summoner newSummoner) {
     LeagueEntryRecord record = dsl.selectFrom(
         LeagueEntry.LEAGUE_ENTRY)
         .where(
             LeagueEntry.LEAGUE_ENTRY.summoner().ACCOUNTID.eq(newSummoner.getAccountId()))
         .fetchAny();
 
+    com.merakianalytics.orianna.types.core.league.LeagueEntry leaguePosition = newSummoner
+        .getLeaguePosition(Queue.TEAM_BUILDER_RANKED_SOLO);
+
+    RankRecord rankRecord = dsl.selectFrom(Rank.RANK)
+        .where(Rank.RANK.NAME.like(leaguePosition.getDivision().name())).fetchAny();
+    TierRecord tierRecord = dsl.selectFrom(Tier.TIER)
+        .where(Tier.TIER.SHORTNAME.like(leaguePosition.getLeague().getName())).fetchAny();
+
     if (record == null) {
       // TODO: finish this
       record = new LeagueEntryRecord();
-      com.merakianalytics.orianna.types.core.league.LeagueEntry leaguePosition = newSummoner
-          .getLeaguePosition(Queue.TEAM_BUILDER_RANKED_SOLO);
-      record.setFreshblood(leaguePosition.isFreshBlood());
+      record = fillLeagueEntry(newSummoner, record, leaguePosition, rankRecord, tierRecord);
+      dsl.insertInto(LeagueEntry.LEAGUE_ENTRY).values(record).execute();
+    } else {
+      record = fillLeagueEntry(newSummoner, record, leaguePosition, rankRecord, tierRecord);
+      dsl.update(LeagueEntry.LEAGUE_ENTRY).set(record)
+          .where(LeagueEntry.LEAGUE_ENTRY.LEAGUEENTRYID.eq(record.getLeagueentryid())).execute();
     }
   }
 
-  private void createSummonerRecord(Summoner newSummoner) {
-    SummonerRecord newRecord = new SummonerRecord();
-    newRecord.setAccountid(newSummoner.getAccountId());
-    newRecord.setSummonerid(newSummoner.getId());
-    newRecord.setName(newSummoner.getName());
-    newRecord.setPuuid(newSummoner.getPuuid());
-    newRecord.setProfileiconid(newSummoner.getProfileIcon().getId());
-    newRecord.setSummonerlevel((long) newSummoner.getLevel());
-    newRecord.setRevisiondate(newSummoner.getUpdated().getMillis());
-    dsl.insertInto(
+  private LeagueEntryRecord fillLeagueEntry(Summoner newSummoner, LeagueEntryRecord record,
+      com.merakianalytics.orianna.types.core.league.LeagueEntry leaguePosition,
+      RankRecord rankRecord, TierRecord tierRecord) {
+    record.setFreshblood(leaguePosition.isFreshBlood());
+    record.setHotstreak(leaguePosition.isOnHotStreak());
+    record.setInactive(leaguePosition.isInactive());
+    record.setVeteran(leaguePosition.isVeteran());
+    record.setLeagueid(leaguePosition.getLeague().getId());
+    record.setLeaguepoints(leaguePosition.getLeaguePoints());
+    record.setLosses(leaguePosition.getLosses());
+    record.setWins(leaguePosition.getWins());
+    record.setSummonerid(newSummoner.getAccountId());
+    record.setQueueid(Constants.SOLO_QUEUE_RANKED_ID);
+    record.setRankid(rankRecord.getRankid());
+    record.setTierid(tierRecord.getTierid());
+    return record;
+  }
+
+  private DateTime createOrUpdateSummonerRecord(Summoner newSummoner) {
+    SummonerRecord record = dsl.selectFrom(
         ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
-        .values(newRecord);
+        .where(
+            ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER.ACCOUNTID
+                .eq(newSummoner.getAccountId()))
+        .fetchAny();
+
+    if (record == null) {
+      record = new SummonerRecord();
+      record = fillSummonerRecord(newSummoner, record);
+      dsl.insertInto(
+          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
+          .values(record).execute();
+      return null;
+    } else {
+      record = fillSummonerRecord(newSummoner, record);
+      dsl.update(
+          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
+          .set(record).where(
+          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER.ACCOUNTID
+              .eq(record.getAccountid())).execute();
+      return newSummoner.getUpdated();
+    }
+  }
+
+  private SummonerRecord fillSummonerRecord(Summoner newSummoner, SummonerRecord record) {
+    record.setAccountid(newSummoner.getAccountId());
+    record.setSummonerid(newSummoner.getId());
+    record.setName(newSummoner.getName());
+    record.setPuuid(newSummoner.getPuuid());
+    record.setProfileiconid(newSummoner.getProfileIcon().getId());
+    record.setSummonerlevel((long) newSummoner.getLevel());
+    record.setRevisiondate(newSummoner.getUpdated().getMillis());
+    return record;
   }
 
   private MatchHistory filterMatchHistory(Summoner summoner, Season season, DateTime startTime) {
