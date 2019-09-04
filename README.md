@@ -8,6 +8,7 @@ is the champions.gg API.
 ## Development environment  
 ### Needed:
  * Docker. There is a docker compose file with the database setup, just run that in docker.
+ * in the pom file, there is a setting to change.
  * Have an API key from riot, and set it as an environment variable
  
  
