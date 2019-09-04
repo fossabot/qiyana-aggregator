@@ -25,7 +25,7 @@
     <spring-cloud.version>Greenwich.SR1</spring-cloud.version>
     <io.springfox.version>2.9.2</io.springfox.version>
     <!--    TODO-dev: change this to jdbc:postgresql://localhost:54320/qiyanna when in dev mode-->
-    <db.url>jdbc:postgresql://postgres:54320/qiyanna</db.url>
+    <db.url>jdbc:postgresql://postgres:5432/qiyanna</db.url>
     <db.username>qiyanna</db.username>
     <db.name>qiyanna</db.name>
     <db.pass>qiyanna123</db.pass>
