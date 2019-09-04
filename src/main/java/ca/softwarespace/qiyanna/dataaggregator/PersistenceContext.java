@@ -32,9 +32,9 @@ public class PersistenceContext {
   @Bean
   public DataSource dataSource() {
     PGSimpleDataSource dataSource = new PGSimpleDataSource();
-    dataSource.setUrl(environment.getRequiredProperty("qiyanna.config.database.url"));
-    dataSource.setUser(environment.getRequiredProperty("qiyanna.config.database.username"));
-    dataSource.setPassword(environment.getRequiredProperty("qiyanna.config.database.password"));
+    dataSource.setUrl(environment.getRequiredProperty("QIYANNA_CONFIG_DATABASE_URL"));
+    dataSource.setUser(environment.getRequiredProperty("QIYANNA_CONFIG_DATABASE_USERNAME"));
+    dataSource.setPassword(environment.getRequiredProperty("QIYANNA_CONFIG_DATABASE_PASSWORD"));
 
     return dataSource;
   }
