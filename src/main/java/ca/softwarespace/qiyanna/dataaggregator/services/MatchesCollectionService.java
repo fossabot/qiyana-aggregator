@@ -236,13 +236,14 @@ public class MatchesCollectionService {
           .values(record).execute();
       return null;
     } else {
+      long lastUpdate = record.getRevisiondate();
       record = fillSummonerRecord(newSummoner, record);
       dsl.update(
           ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
           .set(record).where(
           ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER.ACCOUNTID
               .eq(record.getAccountid())).execute();
-      return newSummoner.getUpdated();
+      return millsToDateTime(lastUpdate);
     }
   }
 
