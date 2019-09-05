@@ -158,21 +158,17 @@ public class MatchesCollectionService {
       pulledSummonerIds.add(newSummonerId);
 
       while (!unpulledMatchIds.isEmpty()) {
-        // Get a random match from our list of matches
-        final long newMatchId = unpulledMatchIds.iterator().next();
-        final Match newMatch = Match.withId(newMatchId).withRegion(region).get();
-        for (final Participant p : newMatch.getParticipants()) {
+        long newMatchId = unpulledMatchIds.iterator().next();
+        Match newMatch = Match.withId(newMatchId).withRegion(region).get();
+        for (Participant p : newMatch.getParticipants()) {
           if (!pulledSummonerIds.contains(p.getSummoner().getId())) {
             unpulledSummonerIds.add(p.getSummoner().getId());
           }
         }
-        // The above lines will trigger the match to load its data by iterating over all the participants.
-        // If you have a database in your datapipeline, the match will automatically be stored in it.
         unpulledMatchIds.remove(newMatchId);
         pulledMatchIds.add(newMatchId);
       }
     }
-    //TODO pull other information like rank and all
   }
 
   private void createOrUpdateLeagueEntry(Summoner newSummoner) {
@@ -191,7 +187,6 @@ public class MatchesCollectionService {
         .where(Tier.TIER.SHORTNAME.like(leaguePosition.getLeague().getName())).fetchAny();
 
     if (record == null) {
-      // TODO: finish this
       record = new LeagueEntryRecord();
       record = fillLeagueEntry(newSummoner, record, leaguePosition, rankRecord, tierRecord);
       dsl.insertInto(LeagueEntry.LEAGUE_ENTRY).values(record).execute();

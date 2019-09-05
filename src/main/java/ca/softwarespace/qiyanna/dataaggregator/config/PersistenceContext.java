@@ -1,6 +1,7 @@
-package ca.softwarespace.qiyanna.dataaggregator;
+package ca.softwarespace.qiyanna.dataaggregator.config;
 
 
+import ca.softwarespace.qiyanna.dataaggregator.ExceptionTranslator;
 import javax.sql.DataSource;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DataSourceConnectionProvider;
