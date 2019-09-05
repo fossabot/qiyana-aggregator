@@ -164,4 +164,5 @@ VALUES ('IRON'),
        ('DIAMOND'),
        ('MASTER'),
        ('GRANDMASTER'),
+       ('UNRANKED'),
        ('CHALLENGER');

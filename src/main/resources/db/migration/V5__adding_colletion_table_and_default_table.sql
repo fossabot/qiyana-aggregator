@@ -16,9 +16,9 @@ CREATE TABLE Aggregator_info
   primary key (id)
 );
 
-INSERT INTO Default_Summoner_name (name, regionName)
-VALUES ('fastboyz', 'NA'),
-       ('Marcarrian', 'EUW');
+INSERT INTO Default_Summoner_name (id, name, regionName)
+VALUES (1, 'fastboyz', 'NA'),
+       (2, 'Marcarrian', 'EUW');
 
-INSERT INTO Aggregator_info (count)
-VALUES (0);
+INSERT INTO Aggregator_info (id, count)
+VALUES (1,0);

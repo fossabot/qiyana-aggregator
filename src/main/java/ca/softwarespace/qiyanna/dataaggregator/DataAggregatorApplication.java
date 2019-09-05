@@ -14,16 +14,16 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableAsync
 public class DataAggregatorApplication {
 
-    @Value("${orianna.config.file}")
-    private String oriannaConfig;
+  @Value("${orianna.config.file}")
+  private String oriannaConfig;
 
-    public static void main(String[] args) {
-        SpringApplication.run(DataAggregatorApplication.class, args);
-    }
+  public static void main(String[] args) {
+    SpringApplication.run(DataAggregatorApplication.class, args);
+  }
 
-    @EventListener(ApplicationReadyEvent.class)
-    public void onApplicationReady() {
-        System.out.println(oriannaConfig);
-        Orianna.loadConfiguration(oriannaConfig);
-    }
+  @EventListener(ApplicationReadyEvent.class)
+  public void onApplicationReady() {
+    System.out.println(oriannaConfig);
+    Orianna.loadConfiguration(oriannaConfig);
+  }
 }

@@ -1,15 +1,21 @@
 package ca.softwarespace.qiyanna.dataaggregator.services;
 
+import ca.softwarespace.qiyanna.dataaggregator.PersistenceContext;
 import ca.softwarespace.qiyanna.dataaggregator.models.MatchDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.AggregatorInfo;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.DefaultSummonerName;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.LeagueEntry;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Rank;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Tier;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.AggregatorInfoRecord;
+import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.DefaultSummonerNameRecord;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.LeagueEntryRecord;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.RankRecord;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.SummonerRecord;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.TierRecord;
 import ca.softwarespace.qiyanna.dataaggregator.util.Constants;
 import ca.softwarespace.qiyanna.dataaggregator.util.RegionUtil;
+import ca.softwarespace.qiyanna.dataaggregator.util.Seasons;
 import com.merakianalytics.orianna.Orianna;
 import com.merakianalytics.orianna.types.common.Queue;
 import com.merakianalytics.orianna.types.common.Region;
@@ -19,9 +25,9 @@ import com.merakianalytics.orianna.types.core.match.MatchHistory;
 import com.merakianalytics.orianna.types.core.match.Participant;
 import com.merakianalytics.orianna.types.core.summoner.Summoner;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.joda.time.DateTime;
 import org.jooq.DSLContext;
@@ -35,13 +41,31 @@ import org.springframework.stereotype.Service;
  */
 @Service
 @Log4j2
-@RequiredArgsConstructor
 public class MatchesCollectionService {
 
-  @Autowired
-  private DSLContext dsl;
+  private final DSLContext dsl;
 
-  public MatchHistory filterMatchHistory(Summoner summoner) {
+  private final PersistenceContext context;
+  private LeagueEntry LEAGUE_ENTRY = LeagueEntry.LEAGUE_ENTRY;
+
+  @Autowired
+  public MatchesCollectionService(DSLContext dsl, PersistenceContext context) {
+    this.dsl = dsl;
+    AggregatorInfoRecord aggregatorInfo = this.dsl.selectFrom(AggregatorInfo.AGGREGATOR_INFO)
+        .fetchOne();
+    List<DefaultSummonerNameRecord> defaultSummoners = this.dsl
+        .selectFrom(DefaultSummonerName.DEFAULT_SUMMONER_NAME).fetch();
+    if (aggregatorInfo.getCount() == 0) {
+      defaultSummoners.forEach(df -> prepareAggregationV2(df.getName(), df.getRegionname(),
+          Seasons.SEASON_2018.getSeasonId()));
+      dsl.update(AggregatorInfo.AGGREGATOR_INFO).set(aggregatorInfo).execute();
+    }
+    aggregatorInfo.setCount(aggregatorInfo.getCount() + 1);
+    aggregatorInfo.update();
+    this.context = context;
+  }
+
+  private MatchHistory filterMatchHistory(Summoner summoner) {
     return Orianna.matchHistoryForSummoner(summoner).withSeasons(Season.getLatest())
         .withQueues(Constants.getQeuesList()).get();
   }
@@ -179,21 +203,33 @@ public class MatchesCollectionService {
         .fetchAny();
 
     com.merakianalytics.orianna.types.core.league.LeagueEntry leaguePosition = newSummoner
-        .getLeaguePosition(Queue.TEAM_BUILDER_RANKED_SOLO);
+        .getLeaguePosition(Queue.RANKED_SOLO_5x5);
+//        .getLeaguePosition(Queue.TEAM_BUILDER_RANKED_SOLO);
 
     RankRecord rankRecord = dsl.selectFrom(Rank.RANK)
         .where(Rank.RANK.NAME.like(leaguePosition.getDivision().name())).fetchAny();
     TierRecord tierRecord = dsl.selectFrom(Tier.TIER)
-        .where(Tier.TIER.SHORTNAME.like(leaguePosition.getLeague().getName())).fetchAny();
+        .where(Tier.TIER.SHORTNAME.like(leaguePosition.getLeague().getTier().name())).fetchAny();
 
     if (record == null) {
       record = new LeagueEntryRecord();
       record = fillLeagueEntry(newSummoner, record, leaguePosition, rankRecord, tierRecord);
-      dsl.insertInto(LeagueEntry.LEAGUE_ENTRY).values(record).execute();
+      dsl.insertInto(LEAGUE_ENTRY, LEAGUE_ENTRY.QUEUEID, LEAGUE_ENTRY.RANKID,
+          LEAGUE_ENTRY.SUMMONERID, LEAGUE_ENTRY.TIERID, LEAGUE_ENTRY.FRESHBLOOD,
+          LEAGUE_ENTRY.HOTSTREAK, LEAGUE_ENTRY.INACTIVE,
+          LEAGUE_ENTRY.LEAGUEID, LEAGUE_ENTRY.LEAGUEPOINTS, LEAGUE_ENTRY.LOSSES,
+          LEAGUE_ENTRY.VETERAN, LEAGUE_ENTRY.WINS)
+          .values(record.getQueueid(), record.getRankid(), record.getSummonerid(),
+              record.getTierid(), record.getFreshblood(), record.getHotstreak(),
+              record.getInactive(),
+              record.getLeagueid(), record.getLeaguepoints(), record.getLosses(),
+              record.getVeteran(), record.getWins()).execute();
+//      record.store();
     } else {
       record = fillLeagueEntry(newSummoner, record, leaguePosition, rankRecord, tierRecord);
-      dsl.update(LeagueEntry.LEAGUE_ENTRY).set(record)
-          .where(LeagueEntry.LEAGUE_ENTRY.LEAGUEENTRYID.eq(record.getLeagueentryid())).execute();
+//      dsl.update(LeagueEntry.LEAGUE_ENTRY).set(record)
+//          .where(LeagueEntry.LEAGUE_ENTRY.LEAGUEENTRYID.eq(record.getLeagueentryid())).execute();
+      record.update();
     }
   }
 
@@ -227,17 +263,21 @@ public class MatchesCollectionService {
       record = new SummonerRecord();
       record = fillSummonerRecord(newSummoner, record);
       dsl.insertInto(
-          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
-          .values(record).execute();
+          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER,
+          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER
+              .fields())
+          .values(record.intoArray()).execute();
+//      record.store();
       return null;
     } else {
       long lastUpdate = record.getRevisiondate();
       record = fillSummonerRecord(newSummoner, record);
-      dsl.update(
-          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
-          .set(record).where(
-          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER.ACCOUNTID
-              .eq(record.getAccountid())).execute();
+//      dsl.update(
+//          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
+//          .set(record).where(
+//          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER.ACCOUNTID
+//              .eq(record.getAccountid())).execute();
+      record.update();
       return millsToDateTime(lastUpdate);
     }
   }
