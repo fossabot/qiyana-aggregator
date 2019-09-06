@@ -1,6 +1,5 @@
 package ca.softwarespace.qiyanna.dataaggregator.services;
 
-import ca.softwarespace.qiyanna.dataaggregator.PersistenceContext;
 import ca.softwarespace.qiyanna.dataaggregator.models.MatchDto;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.AggregatorInfo;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.DefaultSummonerName;
@@ -28,6 +27,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import javax.annotation.PostConstruct;
 import lombok.extern.log4j.Log4j2;
 import org.joda.time.DateTime;
 import org.jooq.DSLContext;
@@ -44,13 +44,15 @@ import org.springframework.stereotype.Service;
 public class MatchesCollectionService {
 
   private final DSLContext dsl;
-
-  private final PersistenceContext context;
   private LeagueEntry LEAGUE_ENTRY = LeagueEntry.LEAGUE_ENTRY;
 
   @Autowired
-  public MatchesCollectionService(DSLContext dsl, PersistenceContext context) {
+  public MatchesCollectionService(DSLContext dsl) {
     this.dsl = dsl;
+  }
+
+  @PostConstruct
+  public void init() {
     AggregatorInfoRecord aggregatorInfo = this.dsl.selectFrom(AggregatorInfo.AGGREGATOR_INFO)
         .fetchOne();
     List<DefaultSummonerNameRecord> defaultSummoners = this.dsl
@@ -62,7 +64,6 @@ public class MatchesCollectionService {
     }
     aggregatorInfo.setCount(aggregatorInfo.getCount() + 1);
     aggregatorInfo.update();
-    this.context = context;
   }
 
   private MatchHistory filterMatchHistory(Summoner summoner) {
@@ -71,72 +72,19 @@ public class MatchesCollectionService {
   }
 
   @Async
-  public void oriannaTest(String summonerName) {
-    Summoner summoner = Orianna.summonerNamed(summonerName).get();
-    Region region = summoner.getRegion();
-    aggregate(summoner, region);
-  }
-
-  @Async
-  public void oriannaTest(String summonerName, String regionName) {
-    Summoner summoner = Orianna.summonerNamed(summonerName).withRegion(Region.valueOf(regionName))
-        .get();
-    Region region = summoner.getRegion();
-    aggregate(summoner, region);
-  }
-
-  @Async
   public CompletableFuture<Set<MatchDto>> getMatchHistoryBySummoner(Summoner summoner) {
     MatchHistory matches = filterMatchHistory(summoner);
-    Set<MatchDto> matchDtos = new HashSet<>();
+    Set<MatchDto> matchDTOs = new HashSet<>();
 
     for (Match match : matches) {
       Match pulledMatch = Match.withId(match.getId()).get();
       MatchDto matchDto = MatchDto.builder()
           .id(pulledMatch.getId())
           .build();
-      matchDtos.add(matchDto);
+      matchDTOs.add(matchDto);
     }
 
-    return CompletableFuture.completedFuture(matchDtos);
-  }
-
-  private void aggregate(Summoner summoner, Region region) {
-    HashSet<String> unpulledSummonerIds = new HashSet<>();
-    unpulledSummonerIds.add(summoner.getId());
-
-    HashSet<String> pulledSummonerIds = new HashSet<>();
-    HashSet<Long> unpulledMatchIds = new HashSet<>();
-    HashSet<Long> pulledMatchIds = new HashSet<>();
-
-    while (!unpulledSummonerIds.isEmpty()) {
-      // Get a new summoner from our list of unpulled summoners and pull their match history
-      final String newSummonerId = unpulledSummonerIds.iterator().next();
-      final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
-      final MatchHistory matches = filterMatchHistory(newSummoner);
-      for (final Match match : matches) {
-        if (!pulledMatchIds.contains(match.getId())) {
-          unpulledMatchIds.add(match.getId());
-        }
-      }
-      unpulledSummonerIds.remove(newSummonerId);
-      pulledSummonerIds.add(newSummonerId);
-
-      while (!unpulledMatchIds.isEmpty()) {
-        // Get a random match from our list of matches
-        final long newMatchId = unpulledMatchIds.iterator().next();
-        final Match newMatch = Match.withId(newMatchId).withRegion(region).get();
-        for (final Participant p : newMatch.getParticipants()) {
-          if (!pulledSummonerIds.contains(p.getSummoner().getId())) {
-            unpulledSummonerIds.add(p.getSummoner().getId());
-          }
-        }
-        // The above lines will trigger the match to load its data by iterating over all the participants.
-        // If you have a database in your datapipeline, the match will automatically be stored in it.
-        unpulledMatchIds.remove(newMatchId);
-        pulledMatchIds.add(newMatchId);
-      }
-    }
+    return CompletableFuture.completedFuture(matchDTOs);
   }
 
   @Async
@@ -144,7 +92,7 @@ public class MatchesCollectionService {
     Season startSeason;
     Region region = RegionUtil.getRegionByTag(regionName);
     Summoner summoner = Orianna.summonerNamed(summonerName).withRegion(region).get();
-
+// TODO-Urgent: the riot API has a but where the season filter is not working properly. Use the start time instead, can be done by using the community patches link.
     if (startSeasonId != null) {
       startSeason = Season.withId(startSeasonId);
     } else {
@@ -155,17 +103,17 @@ public class MatchesCollectionService {
 
   //  TODO: save the summoner is the SQL database,
   private void aggregateV2(Summoner summoner, Region region, Season season) {
-    HashSet<String> unpulledSummonerIds = new HashSet<>();
-    unpulledSummonerIds.add(summoner.getId());
+    HashSet<String> unPulledSummonerIds = new HashSet<>();
+    unPulledSummonerIds.add(summoner.getId());
 
     HashSet<String> pulledSummonerIds = new HashSet<>();
-    HashSet<Long> unpulledMatchIds = new HashSet<>();
+    HashSet<Long> unPulledMatchIds = new HashSet<>();
     HashSet<Long> pulledMatchIds = new HashSet<>();
 
-    while (!unpulledSummonerIds.isEmpty()) {
+    while (!unPulledSummonerIds.isEmpty()) {
 
       // Get a new summoner from our list of unpulled summoners and pull their match history
-      final String newSummonerId = unpulledSummonerIds.iterator().next();
+      final String newSummonerId = unPulledSummonerIds.iterator().next();
 
       final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
       final MatchHistory matches;
@@ -175,21 +123,21 @@ public class MatchesCollectionService {
 
       for (final Match match : matches) {
         if (!pulledMatchIds.contains(match.getId())) {
-          unpulledMatchIds.add(match.getId());
+          unPulledMatchIds.add(match.getId());
         }
       }
-      unpulledSummonerIds.remove(newSummonerId);
+      unPulledSummonerIds.remove(newSummonerId);
       pulledSummonerIds.add(newSummonerId);
 
-      while (!unpulledMatchIds.isEmpty()) {
-        long newMatchId = unpulledMatchIds.iterator().next();
+      while (!unPulledMatchIds.isEmpty()) {
+        long newMatchId = unPulledMatchIds.iterator().next();
         Match newMatch = Match.withId(newMatchId).withRegion(region).get();
         for (Participant p : newMatch.getParticipants()) {
           if (!pulledSummonerIds.contains(p.getSummoner().getId())) {
-            unpulledSummonerIds.add(p.getSummoner().getId());
+            unPulledSummonerIds.add(p.getSummoner().getId());
           }
         }
-        unpulledMatchIds.remove(newMatchId);
+        unPulledMatchIds.remove(newMatchId);
         pulledMatchIds.add(newMatchId);
       }
     }
@@ -224,7 +172,6 @@ public class MatchesCollectionService {
               record.getInactive(),
               record.getLeagueid(), record.getLeaguepoints(), record.getLosses(),
               record.getVeteran(), record.getWins()).execute();
-//      record.store();
     } else {
       record = fillLeagueEntry(newSummoner, record, leaguePosition, rankRecord, tierRecord);
 //      dsl.update(LeagueEntry.LEAGUE_ENTRY).set(record)
@@ -267,7 +214,6 @@ public class MatchesCollectionService {
           ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER
               .fields())
           .values(record.intoArray()).execute();
-//      record.store();
       return null;
     } else {
       long lastUpdate = record.getRevisiondate();
@@ -295,10 +241,10 @@ public class MatchesCollectionService {
 
   private MatchHistory filterMatchHistory(Summoner summoner, Season season, DateTime startTime) {
     if (startTime != null) {
-      return Orianna.matchHistoryForSummoner(summoner).withSeasons(Season.getLatest())
+      return Orianna.matchHistoryForSummoner(summoner).withSeasons(season)
           .withQueues(Constants.getQeuesList()).withStartTime(startTime).get();
     } else {
-      return Orianna.matchHistoryForSummoner(summoner).withSeasons(Season.getLatest())
+      return Orianna.matchHistoryForSummoner(summoner).withSeasons(season)
           .withQueues(Constants.getQeuesList()).get();
     }
   }
@@ -306,6 +252,5 @@ public class MatchesCollectionService {
   private DateTime millsToDateTime(long millis) {
     return new DateTime(millis);
   }
-
 }
 
