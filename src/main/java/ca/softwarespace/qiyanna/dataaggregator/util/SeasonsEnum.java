@@ -1,6 +1,6 @@
 package ca.softwarespace.qiyanna.dataaggregator.util;
 
-public enum Seasons {
+public enum SeasonsEnum {
   PRESEASON_3(0),
   SEASON_3(1),
   PRESEASON_2014(2),
@@ -18,7 +18,7 @@ public enum Seasons {
 
   private final int seasonId;
 
-  Seasons(int seasonId) {
+  SeasonsEnum(int seasonId) {
     this.seasonId = seasonId;
   }
 
