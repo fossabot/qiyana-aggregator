@@ -160,7 +160,7 @@ public class MatchesCollectionService {
         .fetchAny();
 
     com.merakianalytics.orianna.types.core.league.LeagueEntry leaguePosition = newSummoner
-        .getLeaguePosition(Queue.RANKED_SOLO_5X5);
+        .getLeaguePosition(Queue.RANKED_SOLO_5x5);
 //        .getLeaguePosition(Queue.TEAM_BUILDER_RANKED_SOLO);
 
     RankRecord rankRecord = dsl.selectFrom(Rank.RANK)
