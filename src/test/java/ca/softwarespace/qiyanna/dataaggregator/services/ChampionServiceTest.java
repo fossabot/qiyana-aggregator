@@ -2,8 +2,8 @@ package ca.softwarespace.qiyanna.dataaggregator.services;
 
 import static org.junit.Assert.assertEquals;
 
-import ca.softwarespace.qiyanna.dataaggregator.models.AggregatedChampionDto;
-import ca.softwarespace.qiyanna.dataaggregator.models.ChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.DAO.AggregatedChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.DTO.ChampionDto;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.BeforeClass;

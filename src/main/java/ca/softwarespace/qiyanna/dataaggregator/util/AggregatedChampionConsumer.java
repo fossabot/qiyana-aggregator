@@ -1,7 +1,7 @@
 package ca.softwarespace.qiyanna.dataaggregator.util;
 
-import ca.softwarespace.qiyanna.dataaggregator.models.AggregatedChampionDto;
-import ca.softwarespace.qiyanna.dataaggregator.models.ChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.DAO.AggregatedChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.DTO.ChampionDto;
 import java.util.function.Consumer;
 
 public class AggregatedChampionConsumer implements Consumer<ChampionDto> {

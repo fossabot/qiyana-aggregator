@@ -1,6 +1,6 @@
 package ca.softwarespace.qiyanna.dataaggregator.services;
 
-import ca.softwarespace.qiyanna.dataaggregator.models.MatchDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.DTO.MatchDto;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.AggregatorInfo;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.DefaultSummonerName;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.LeagueEntry;
@@ -14,7 +14,8 @@ import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.S
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.records.TierRecord;
 import ca.softwarespace.qiyanna.dataaggregator.util.Constants;
 import ca.softwarespace.qiyanna.dataaggregator.util.RegionUtil;
-import ca.softwarespace.qiyanna.dataaggregator.util.Seasons;
+import ca.softwarespace.qiyanna.dataaggregator.util.RestClient;
+import ca.softwarespace.qiyanna.dataaggregator.util.SeasonsEnum;
 import com.merakianalytics.orianna.Orianna;
 import com.merakianalytics.orianna.types.common.Queue;
 import com.merakianalytics.orianna.types.common.Region;
@@ -32,6 +33,7 @@ import lombok.extern.log4j.Log4j2;
 import org.joda.time.DateTime;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -42,6 +44,9 @@ import org.springframework.stereotype.Service;
 @Service
 @Log4j2
 public class MatchesCollectionService {
+
+  @Value("$(community.patches.url)")
+  private String patchUrl;
 
   private final DSLContext dsl;
   private LeagueEntry LEAGUE_ENTRY = LeagueEntry.LEAGUE_ENTRY;
@@ -59,7 +64,7 @@ public class MatchesCollectionService {
         .selectFrom(DefaultSummonerName.DEFAULT_SUMMONER_NAME).fetch();
     if (aggregatorInfo.getCount() == 0) {
       defaultSummoners.forEach(df -> prepareAggregationV2(df.getName(), df.getRegionname(),
-          Seasons.SEASON_2018.getSeasonId()));
+          SeasonsEnum.SEASON_2018.getSeasonId()));
       dsl.update(AggregatorInfo.AGGREGATOR_INFO).set(aggregatorInfo).execute();
     }
     aggregatorInfo.setCount(aggregatorInfo.getCount() + 1);
@@ -89,14 +94,13 @@ public class MatchesCollectionService {
 
   @Async
   public void prepareAggregationV2(String summonerName, String regionName, Integer startSeasonId) {
-    Season startSeason;
+    RestClient restClient = new RestClient();
+    Season startSeason = null;
     Region region = RegionUtil.getRegionByTag(regionName);
     Summoner summoner = Orianna.summonerNamed(summonerName).withRegion(region).get();
 // TODO-Urgent: the riot API has a but where the season filter is not working properly. Use the start time instead, can be done by using the community patches link.
     if (startSeasonId != null) {
       startSeason = Season.withId(startSeasonId);
-    } else {
-      startSeason = Season.getLatest();
     }
     aggregateV2(summoner, region, startSeason);
   }
@@ -117,7 +121,12 @@ public class MatchesCollectionService {
 
       final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
       final MatchHistory matches;
-      DateTime startUpdateTime = createOrUpdateSummonerRecord(newSummoner);
+      //TODO-Urgent: fix here!
+      DateTime startUpdateTime;
+      if (season == null) {
+
+      }
+      startUpdateTime = createOrUpdateSummonerRecord(newSummoner);
       matches = filterMatchHistory(newSummoner, season, startUpdateTime);
       createOrUpdateLeagueEntry(newSummoner);
 
@@ -151,7 +160,7 @@ public class MatchesCollectionService {
         .fetchAny();
 
     com.merakianalytics.orianna.types.core.league.LeagueEntry leaguePosition = newSummoner
-        .getLeaguePosition(Queue.RANKED_SOLO_5x5);
+        .getLeaguePosition(Queue.RANKED_SOLO_5X5);
 //        .getLeaguePosition(Queue.TEAM_BUILDER_RANKED_SOLO);
 
     RankRecord rankRecord = dsl.selectFrom(Rank.RANK)

@@ -1,6 +1,6 @@
 package ca.softwarespace.qiyanna.dataaggregator.services;
 
-import ca.softwarespace.qiyanna.dataaggregator.models.SummonerDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.DTO.SummonerDto;
 import ca.softwarespace.qiyanna.dataaggregator.util.RegionUtil;
 import com.merakianalytics.orianna.Orianna;
 import com.merakianalytics.orianna.types.common.Queue;

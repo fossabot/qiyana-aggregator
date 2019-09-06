@@ -1,4 +1,4 @@
-package ca.softwarespace.qiyanna.dataaggregator.models;
+package ca.softwarespace.qiyanna.dataaggregator.models.DTO;
 
 import com.merakianalytics.orianna.types.common.Division;
 import com.merakianalytics.orianna.types.common.Tier;
