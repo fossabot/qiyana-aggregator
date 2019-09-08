@@ -1,5 +1,6 @@
 package ca.softwarespace.qiyanna.dataaggregator.services;
 
+import ca.softwarespace.qiyanna.dataaggregator.models.CommunityPatch;
 import ca.softwarespace.qiyanna.dataaggregator.models.DTO.MatchDto;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.AggregatorInfo;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.DefaultSummonerName;
@@ -16,6 +17,10 @@ import ca.softwarespace.qiyanna.dataaggregator.util.Constants;
 import ca.softwarespace.qiyanna.dataaggregator.util.RegionUtil;
 import ca.softwarespace.qiyanna.dataaggregator.util.RestClient;
 import ca.softwarespace.qiyanna.dataaggregator.util.SeasonsEnum;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.merakianalytics.orianna.Orianna;
 import com.merakianalytics.orianna.types.common.Queue;
 import com.merakianalytics.orianna.types.common.Region;
@@ -24,8 +29,11 @@ import com.merakianalytics.orianna.types.core.match.Match;
 import com.merakianalytics.orianna.types.core.match.MatchHistory;
 import com.merakianalytics.orianna.types.core.match.Participant;
 import com.merakianalytics.orianna.types.core.summoner.Summoner;
+import java.io.IOException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.PostConstruct;
@@ -45,15 +53,19 @@ import org.springframework.stereotype.Service;
 @Log4j2
 public class MatchesCollectionService {
 
-  @Value("$(community.patches.url)")
+  @Value("${community.patches.url}")
   private String patchUrl;
 
   private final DSLContext dsl;
   private LeagueEntry LEAGUE_ENTRY = LeagueEntry.LEAGUE_ENTRY;
 
+  private ObjectMapper objectMapper;
+
   @Autowired
   public MatchesCollectionService(DSLContext dsl) {
     this.dsl = dsl;
+    this.objectMapper = new ObjectMapper();
+    this.objectMapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
   }
 
   @PostConstruct
@@ -94,19 +106,46 @@ public class MatchesCollectionService {
 
   @Async
   public void prepareAggregationV2(String summonerName, String regionName, Integer startSeasonId) {
-    RestClient restClient = new RestClient();
+    Long seasonStartTime = getPatchStartTime(regionName, startSeasonId);
     Season startSeason = null;
     Region region = RegionUtil.getRegionByTag(regionName);
     Summoner summoner = Orianna.summonerNamed(summonerName).withRegion(region).get();
-// TODO-Urgent: the riot API has a but where the season filter is not working properly. Use the start time instead, can be done by using the community patches link.
+// TODO-Urgent: the riot API has a bug where the season filter is not working properly. Use the start time instead, can be done by using the community patches link.
     if (startSeasonId != null) {
       startSeason = Season.withId(startSeasonId);
     }
-    aggregateV2(summoner, region, startSeason);
+    collectMatches(summoner, region, startSeason, seasonStartTime);
   }
 
-  //  TODO: save the summoner is the SQL database,
-  private void aggregateV2(Summoner summoner, Region region, Season season) {
+  private Long getPatchStartTime(String regionName, Integer startSeasonId) {
+    try {
+      RestClient restClient = new RestClient();
+      String data = restClient.get(patchUrl);
+      JsonNode json = objectMapper.readTree(data);
+      JsonNode jsonPatches = json.get("patches");
+      JsonNode jsonShifts = json.get("shifts");
+      List<CommunityPatch> patches = objectMapper
+          .readValue(jsonPatches.toString(), new TypeReference<List<CommunityPatch>>() {
+          });
+      HashMap<String, Integer> shifts = objectMapper
+          .readValue(jsonShifts.toString(), new TypeReference<HashMap<String, Integer>>() {
+          });
+      Optional<CommunityPatch> patch = patches.stream().filter(p -> p.getSeason() == startSeasonId)
+          .findFirst();
+      Optional<String> shiftKey = shifts.keySet().stream()
+          .filter(k -> k.toUpperCase().contains(regionName.toUpperCase())).findFirst();
+
+      if (patch.isPresent() && shiftKey.isPresent()) {
+        return patch.get().getStart() + shifts.get(shiftKey.get());
+      }
+    } catch (Exception e) {
+      log.fatal(e);
+    }
+    return null;
+  }
+
+  private void collectMatches(Summoner summoner, Region region, Season season,
+      long seasonStartTime) {
     HashSet<String> unPulledSummonerIds = new HashSet<>();
     unPulledSummonerIds.add(summoner.getId());
 
@@ -121,13 +160,8 @@ public class MatchesCollectionService {
 
       final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
       final MatchHistory matches;
-      //TODO-Urgent: fix here!
-      DateTime startUpdateTime;
-      if (season == null) {
-
-      }
-      startUpdateTime = createOrUpdateSummonerRecord(newSummoner);
-      matches = filterMatchHistory(newSummoner, season, startUpdateTime);
+      DateTime startUpdateTime = createOrUpdateSummonerRecord(newSummoner);
+      matches = filterMatchHistory(newSummoner, millsToDateTime(seasonStartTime), startUpdateTime);
       createOrUpdateLeagueEntry(newSummoner);
 
       for (final Match match : matches) {
@@ -248,12 +282,13 @@ public class MatchesCollectionService {
     return record;
   }
 
-  private MatchHistory filterMatchHistory(Summoner summoner, Season season, DateTime startTime) {
+  private MatchHistory filterMatchHistory(Summoner summoner, DateTime seasonStartTime,
+      DateTime startTime) {
     if (startTime != null) {
-      return Orianna.matchHistoryForSummoner(summoner).withSeasons(season)
+      return Orianna.matchHistoryForSummoner(summoner)
           .withQueues(Constants.getQeuesList()).withStartTime(startTime).get();
     } else {
-      return Orianna.matchHistoryForSummoner(summoner).withSeasons(season)
+      return Orianna.matchHistoryForSummoner(summoner).withStartTime(seasonStartTime)
           .withQueues(Constants.getQeuesList()).get();
     }
   }
