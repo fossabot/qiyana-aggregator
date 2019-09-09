@@ -23,18 +23,19 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.joda.time.Duration;
 import org.springframework.stereotype.Service;
 
 @Service
-@Log4j2
+@Slf4j
 @RequiredArgsConstructor
 public class ChampionService {
 
   private final AggregatedChampionRepository aggregatedChampionRepository;
 
-  public List<AggregatedChampionDto> aggregateChampionStatsBySummoner(String summonerName, String championName, String regionName) {
+  public List<AggregatedChampionDto> aggregateChampionStatsBySummoner(String summonerName,
+      String championName, String regionName) {
     Region region = RegionUtil.getRegionByTag(regionName);
     //TODO: add support for region here
     Summoner summoner = Orianna.summonerNamed(summonerName)
@@ -43,13 +44,15 @@ public class ChampionService {
     // TODO include queue in request when orianna is updated to have updated queue ids
     MatchHistory matches = MatchHistory.forSummoner(summoner)
         .withSeasons(Season.getLatest())
-        .withQueues(Queue.TEAM_BUILDER_RANKED_SOLO) // TODO update with actual ranked solo as soon as orianna gets updated
+        .withQueues(
+            Queue.TEAM_BUILDER_RANKED_SOLO) // TODO update with actual ranked solo as soon as orianna gets updated
         .withChampions((championName == null || championName.isEmpty()) ?
             Collections.emptySet() :
             Orianna.championsNamed(championName).get())
         .get();
     List<ChampionDto> championsFromMatchHistory = getChampionsFromMatchHistory(summoner, matches);
-    List<AggregatedChampionDto> aggregatedChampions = aggregateAllChampions(championsFromMatchHistory);
+    List<AggregatedChampionDto> aggregatedChampions = aggregateAllChampions(
+        championsFromMatchHistory);
 
     List<AggregatedChampionDao> aggregatedChampionDaos = aggregatedChampions.stream()
         .map(AggregatedChampionDto::from)
@@ -65,7 +68,8 @@ public class ChampionService {
         .filter(match -> !match.isRemake())
         .forEach(match -> {
           Optional<ChampionDto> champion = match.getParticipants().stream()
-              .filter(participant -> participant.getSummoner().getAccountId().equals(summoner.getAccountId()))
+              .filter(participant -> participant.getSummoner().getAccountId()
+                  .equals(summoner.getAccountId()))
               .map(participant -> this.buildChampionDto(participant, match.getDuration()))
               .filter(Objects::nonNull)
               .findFirst();
@@ -112,7 +116,8 @@ public class ChampionService {
 
   public AggregatedChampionDto aggregateChampion(List<ChampionDto> champions) {
     return champions.stream()
-        .collect(AggregatedChampionConsumer::new, AggregatedChampionConsumer::accept, AggregatedChampionConsumer::combine)
+        .collect(AggregatedChampionConsumer::new, AggregatedChampionConsumer::accept,
+            AggregatedChampionConsumer::combine)
         .getAggregatedChampionDto();
   }
 }

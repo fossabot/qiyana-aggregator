@@ -29,7 +29,6 @@ import com.merakianalytics.orianna.types.core.match.Match;
 import com.merakianalytics.orianna.types.core.match.MatchHistory;
 import com.merakianalytics.orianna.types.core.match.Participant;
 import com.merakianalytics.orianna.types.core.summoner.Summoner;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -37,7 +36,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import javax.annotation.PostConstruct;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.joda.time.DateTime;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,7 +49,7 @@ import org.springframework.stereotype.Service;
  * Author: Steve Mbiele Date: 5/15/2019
  */
 @Service
-@Log4j2
+@Slf4j
 public class MatchesCollectionService {
 
   @Value("${community.patches.url}")
@@ -106,15 +105,13 @@ public class MatchesCollectionService {
 
   @Async
   public void prepareAggregationV2(String summonerName, String regionName, Integer startSeasonId) {
+    if (startSeasonId == null) {
+      startSeasonId = Season.getLatest().getId();
+    }
     Long seasonStartTime = getPatchStartTime(regionName, startSeasonId);
-    Season startSeason = null;
     Region region = RegionUtil.getRegionByTag(regionName);
     Summoner summoner = Orianna.summonerNamed(summonerName).withRegion(region).get();
-// TODO-Urgent: the riot API has a bug where the season filter is not working properly. Use the start time instead, can be done by using the community patches link.
-    if (startSeasonId != null) {
-      startSeason = Season.withId(startSeasonId);
-    }
-    collectMatches(summoner, region, startSeason, seasonStartTime);
+    collectMatches(summoner, region, seasonStartTime);
   }
 
   private Long getPatchStartTime(String regionName, Integer startSeasonId) {
@@ -139,13 +136,12 @@ public class MatchesCollectionService {
         return patch.get().getStart() + shifts.get(shiftKey.get());
       }
     } catch (Exception e) {
-      log.fatal(e);
+      log.error(e.getLocalizedMessage(), e);
     }
     return null;
   }
 
-  private void collectMatches(Summoner summoner, Region region, Season season,
-      long seasonStartTime) {
+  private void collectMatches(Summoner summoner, Region region, long seasonStartTime) {
     HashSet<String> unPulledSummonerIds = new HashSet<>();
     unPulledSummonerIds.add(summoner.getId());
 
@@ -155,7 +151,6 @@ public class MatchesCollectionService {
 
     while (!unPulledSummonerIds.isEmpty()) {
 
-      // Get a new summoner from our list of unpulled summoners and pull their match history
       final String newSummonerId = unPulledSummonerIds.iterator().next();
 
       final Summoner newSummoner = Summoner.withId(newSummonerId).withRegion(region).get();
@@ -195,7 +190,6 @@ public class MatchesCollectionService {
 
     com.merakianalytics.orianna.types.core.league.LeagueEntry leaguePosition = newSummoner
         .getLeaguePosition(Queue.RANKED_SOLO_5x5);
-//        .getLeaguePosition(Queue.TEAM_BUILDER_RANKED_SOLO);
 
     RankRecord rankRecord = dsl.selectFrom(Rank.RANK)
         .where(Rank.RANK.NAME.like(leaguePosition.getDivision().name())).fetchAny();
@@ -217,8 +211,6 @@ public class MatchesCollectionService {
               record.getVeteran(), record.getWins()).execute();
     } else {
       record = fillLeagueEntry(newSummoner, record, leaguePosition, rankRecord, tierRecord);
-//      dsl.update(LeagueEntry.LEAGUE_ENTRY).set(record)
-//          .where(LeagueEntry.LEAGUE_ENTRY.LEAGUEENTRYID.eq(record.getLeagueentryid())).execute();
       record.update();
     }
   }
@@ -261,11 +253,6 @@ public class MatchesCollectionService {
     } else {
       long lastUpdate = record.getRevisiondate();
       record = fillSummonerRecord(newSummoner, record);
-//      dsl.update(
-//          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER)
-//          .set(record).where(
-//          ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.Summoner.SUMMONER.ACCOUNTID
-//              .eq(record.getAccountid())).execute();
       record.update();
       return millsToDateTime(lastUpdate);
     }
@@ -282,6 +269,7 @@ public class MatchesCollectionService {
     return record;
   }
 
+  // TODO-Urgent: there is a bug in orianna, with getting by withStartTime.
   private MatchHistory filterMatchHistory(Summoner summoner, DateTime seasonStartTime,
       DateTime startTime) {
     if (startTime != null) {

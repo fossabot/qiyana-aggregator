@@ -45,7 +45,7 @@ public class AggregatedChampionConsumer implements Consumer<ChampionDto> {
     aggregatedChampionDto.setAverageCsPerMin(aggregatedChampionDto.getAverageCsPerMin() / count);
     aggregatedChampionDto.setPlayed(count);
     double winrate = (double) aggregatedChampionDto.getWins() / ((double) aggregatedChampionDto.getWins() + (double) aggregatedChampionDto.getLosses());
-    aggregatedChampionDto.setWinrate(winrate);
+    aggregatedChampionDto.setWinRate(winrate);
     return aggregatedChampionDto;
   }
 }

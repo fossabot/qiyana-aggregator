@@ -86,7 +86,7 @@ public class ChampionServiceTest {
     assertEquals(played, aggregatedChampionDto.getPlayed());
     assertEquals(wins, aggregatedChampionDto.getWins());
     assertEquals(losses, aggregatedChampionDto.getLosses());
-    assertEquals(winrate, aggregatedChampionDto.getWinrate(), 0.0f);
+    assertEquals(winrate, aggregatedChampionDto.getWinRate(), 0.0f);
   }
 
 }
