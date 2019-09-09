@@ -7,9 +7,15 @@ is the champions.gg API.
 
 ## Development environment  
 ### Needed:
- * Docker. There is a docker compose file with the database setup, just run that in docker.
- * in the pom file, there is a setting to change.
- * Have an API key from riot, and set it as an environment variable
+ 1. Docker. There is a docker compose file with the database setup, just run that in docker.
+ 2. in the pom file, there is a setting to change.
+ 3. You sill need to set these ENV variables:
+    * QIYANNA_CONFIG_DATABASE_URL=jdbc:postgresql://localhost:54320/qiyanna
+    * QIYANNA_CONFIG_DATABASE_USERNAME=qiyanna
+    * QIYANNA_CONFIG_DATABASE_PASSWORD=qiyanna123
+    * RIOT_API_KEY=YOUR API KEY
+ 4. Once you have the containers running, run the command `mvn clean install` in order to generated the table in the database and have the migrations be applied
+ 5. You are ready to run the app
  
  
  ## Disclaimer  
