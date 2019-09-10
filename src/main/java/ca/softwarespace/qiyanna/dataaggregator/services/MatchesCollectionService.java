@@ -1,7 +1,7 @@
 package ca.softwarespace.qiyanna.dataaggregator.services;
 
 import ca.softwarespace.qiyanna.dataaggregator.models.CommunityPatch;
-import ca.softwarespace.qiyanna.dataaggregator.models.DTO.MatchDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.dto.MatchDto;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.AggregatorInfo;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.DefaultSummonerName;
 import ca.softwarespace.qiyanna.dataaggregator.models.generated.tables.LeagueEntry;
@@ -52,11 +52,10 @@ import org.springframework.stereotype.Service;
 @Slf4j
 public class MatchesCollectionService {
 
+  private final DSLContext dsl;
   @Value("${community.patches.url}")
   private String patchUrl;
-
-  private final DSLContext dsl;
-  private LeagueEntry LEAGUE_ENTRY = LeagueEntry.LEAGUE_ENTRY;
+  private LeagueEntry leagueEntryTable = LeagueEntry.LEAGUE_ENTRY;
 
   private ObjectMapper objectMapper;
 
@@ -84,7 +83,7 @@ public class MatchesCollectionService {
 
   private MatchHistory filterMatchHistory(Summoner summoner) {
     return Orianna.matchHistoryForSummoner(summoner).withSeasons(Season.getLatest())
-        .withQueues(Constants.getQeuesList()).get();
+        .withQueues(Constants.getQueuesList()).get();
   }
 
   @Async
@@ -199,11 +198,11 @@ public class MatchesCollectionService {
     if (record == null) {
       record = new LeagueEntryRecord();
       record = fillLeagueEntry(newSummoner, record, leaguePosition, rankRecord, tierRecord);
-      dsl.insertInto(LEAGUE_ENTRY, LEAGUE_ENTRY.QUEUEID, LEAGUE_ENTRY.RANKID,
-          LEAGUE_ENTRY.SUMMONERID, LEAGUE_ENTRY.TIERID, LEAGUE_ENTRY.FRESHBLOOD,
-          LEAGUE_ENTRY.HOTSTREAK, LEAGUE_ENTRY.INACTIVE,
-          LEAGUE_ENTRY.LEAGUEID, LEAGUE_ENTRY.LEAGUEPOINTS, LEAGUE_ENTRY.LOSSES,
-          LEAGUE_ENTRY.VETERAN, LEAGUE_ENTRY.WINS)
+      dsl.insertInto(leagueEntryTable, leagueEntryTable.QUEUEID, leagueEntryTable.RANKID,
+          leagueEntryTable.SUMMONERID, leagueEntryTable.TIERID, leagueEntryTable.FRESHBLOOD,
+          leagueEntryTable.HOTSTREAK, leagueEntryTable.INACTIVE,
+          leagueEntryTable.LEAGUEID, leagueEntryTable.LEAGUEPOINTS, leagueEntryTable.LOSSES,
+          leagueEntryTable.VETERAN, leagueEntryTable.WINS)
           .values(record.getQueueid(), record.getRankid(), record.getSummonerid(),
               record.getTierid(), record.getFreshblood(), record.getHotstreak(),
               record.getInactive(),
@@ -274,10 +273,10 @@ public class MatchesCollectionService {
       DateTime startTime) {
     if (startTime != null) {
       return Orianna.matchHistoryForSummoner(summoner)
-          .withQueues(Constants.getQeuesList()).withStartTime(startTime).get();
+          .withQueues(Constants.getQueuesList()).withStartTime(startTime).get();
     } else {
       return Orianna.matchHistoryForSummoner(summoner).withStartTime(seasonStartTime)
-          .withQueues(Constants.getQeuesList()).get();
+          .withQueues(Constants.getQueuesList()).get();
     }
   }
 

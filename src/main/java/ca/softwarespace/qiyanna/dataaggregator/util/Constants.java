@@ -2,6 +2,7 @@ package ca.softwarespace.qiyanna.dataaggregator.util;
 
 import com.merakianalytics.orianna.types.common.Queue;
 import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Author: Steve Mbiele Date: 5/15/2019
@@ -11,7 +12,10 @@ public class Constants {
   public static final String MATCH_LIST_BEGIN_INDEX_PARAMETER = "beginIndex";
   public static final String MATCHES_NODE_IN_MATCH_LIST = "matches";
   public static final int SOLO_QUEUE_RANKED_ID = 420;
-  public static ArrayList<Queue> getQeuesList() {
+  private Constants() {
+  }
+
+  public static List<Queue> getQueuesList() {
     ArrayList<Queue> queues = new ArrayList<>();
     queues.add(Queue.OVERCHARGE);
     queues.add(Queue.SIEGE);

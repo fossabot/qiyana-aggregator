@@ -2,8 +2,8 @@ package ca.softwarespace.qiyanna.dataaggregator.services;
 
 import static org.junit.Assert.assertEquals;
 
-import ca.softwarespace.qiyanna.dataaggregator.models.DAO.AggregatedChampionDto;
-import ca.softwarespace.qiyanna.dataaggregator.models.DTO.ChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.dao.AggregatedChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.dto.ChampionDto;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.BeforeClass;
@@ -15,12 +15,11 @@ import org.mockito.junit.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class ChampionServiceTest {
 
-  @InjectMocks
-  private ChampionService championService;
-
-  private static List<ChampionDto> viChampions = new ArrayList<>();
   private static final String VI_NAME = "Vi";
   private static final String ACCOUNT_ID = "better_jg_wins";
+  private static List<ChampionDto> viChampions = new ArrayList<>();
+  @InjectMocks
+  private ChampionService championService;
 
   @BeforeClass
   public static void setup() {

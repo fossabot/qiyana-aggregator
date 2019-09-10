@@ -1,6 +1,7 @@
 package ca.softwarespace.qiyanna.dataaggregator;
 
 import com.merakianalytics.orianna.Orianna;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,6 +13,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @SpringBootApplication
 @EnableAsync
+@Slf4j
 public class DataAggregatorApplication {
 
   @Value("${orianna.config.file}")
@@ -23,7 +25,7 @@ public class DataAggregatorApplication {
 
   @EventListener(ApplicationReadyEvent.class)
   public void onApplicationReady() {
-    System.out.println(oriannaConfig);
+    log.info(oriannaConfig);
     Orianna.loadConfiguration(oriannaConfig);
   }
 }

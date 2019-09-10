@@ -1,8 +1,8 @@
 package ca.softwarespace.qiyanna.dataaggregator.services;
 
-import ca.softwarespace.qiyanna.dataaggregator.models.DAO.AggregatedChampionDao;
-import ca.softwarespace.qiyanna.dataaggregator.models.DAO.AggregatedChampionDto;
-import ca.softwarespace.qiyanna.dataaggregator.models.DTO.ChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.dao.AggregatedChampionDao;
+import ca.softwarespace.qiyanna.dataaggregator.models.dao.AggregatedChampionDto;
+import ca.softwarespace.qiyanna.dataaggregator.models.dto.ChampionDto;
 import ca.softwarespace.qiyanna.dataaggregator.repositories.AggregatedChampionRepository;
 import ca.softwarespace.qiyanna.dataaggregator.util.AggregatedChampionConsumer;
 import ca.softwarespace.qiyanna.dataaggregator.util.RegionUtil;

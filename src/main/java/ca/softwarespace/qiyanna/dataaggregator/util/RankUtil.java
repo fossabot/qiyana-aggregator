@@ -2,6 +2,9 @@ package ca.softwarespace.qiyanna.dataaggregator.util;
 
 public class RankUtil {
 
+  private RankUtil() {
+  }
+
   public static int getRankIdByTag(String tag) {
     switch (tag.toUpperCase()) {
       case "I":

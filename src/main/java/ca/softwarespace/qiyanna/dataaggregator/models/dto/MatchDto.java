@@ -1,4 +1,4 @@
-package ca.softwarespace.qiyanna.dataaggregator.models.DTO;
+package ca.softwarespace.qiyanna.dataaggregator.models.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

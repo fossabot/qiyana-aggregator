@@ -1,6 +1,7 @@
 package ca.softwarespace.qiyanna.dataaggregator.models;
 
 public class CommunityPatch {
+
   private String name;
   private long start;
   private int season;

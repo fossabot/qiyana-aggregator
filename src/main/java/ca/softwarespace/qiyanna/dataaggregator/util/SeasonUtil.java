@@ -2,6 +2,9 @@ package ca.softwarespace.qiyanna.dataaggregator.util;
 
 public class SeasonUtil {
 
+  private SeasonUtil() {
+  }
+
   public static int getSeasonNumberByName(String name) {
     switch (name.toUpperCase()) {
       case "PRESEASON_3":

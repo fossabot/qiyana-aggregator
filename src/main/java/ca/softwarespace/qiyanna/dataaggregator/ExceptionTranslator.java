@@ -8,6 +8,7 @@ import org.springframework.jdbc.support.SQLExceptionTranslator;
 
 public class ExceptionTranslator extends DefaultExecuteListener {
 
+  @Override
   public void exception(ExecuteContext context) {
     SQLDialect dialect = context.configuration().dialect();
     SQLExceptionTranslator translator
